@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌴 Kanak Quest!</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --green: #059669; --orange: #ea580c;
+  --blue: #2563eb; --pink: #e11d48; --yellow: #f59e0b;
+  --bg: #0f0e17; --card: #1a1830; --card2: #221f3a;
+}
+body { font-family: 'Nunito', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; overflow-x: hidden; }
+#starCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+.app { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
+
+/* HERO */
+.hero { text-align: center; padding: 40px 20px 28px; animation: heroIn 0.8s cubic-bezier(.22,1,.36,1) both; }
+@keyframes heroIn { from { opacity:0; transform:translateY(-40px) scale(0.9); } to { opacity:1; transform:none; } }
+.hero-badge { display:inline-block; background:linear-gradient(135deg,#f59e0b,#ef4444); color:white; font-family:'Fredoka One',cursive; font-size:0.8rem; letter-spacing:3px; text-transform:uppercase; padding:5px 18px; border-radius:50px; margin-bottom:16px; animation:badgePulse 2s ease-in-out infinite; }
+@keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 10px rgba(239,68,68,0)} }
+.hero h1 { font-family:'Fredoka One',cursive; font-size:clamp(2.4rem,7vw,4rem); line-height:1; margin-bottom:10px; background:linear-gradient(135deg,#f59e0b,#ec4899,#8b5cf6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.hero p { color:#94a3b8; font-size:1rem; font-weight:600; max-width:400px; margin:0 auto 20px; line-height:1.5; }
+.score-bar { display:flex; justify-content:center; gap:14px; flex-wrap:wrap; }
+.score-pill { background:var(--card2); border:2px solid #2d2b4e; border-radius:50px; padding:8px 18px; font-weight:800; font-size:0.88rem; display:flex; align-items:center; gap:7px; }
+.score-pill .val { font-family:'Fredoka One',cursive; font-size:1.3rem; color:#f59e0b; transition:transform 0.3s; }
+.score-pill .val.bump { animation:bump 0.4s ease; }
+@keyframes bump { 0%,100%{transform:scale(1)} 50%{transform:scale(1.5)} }
+
+/* TABS */
+.tabs { display:flex; gap:8px; margin:22px 0 14px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.tab-btn { flex-shrink:0; background:var(--card2); border:2px solid #2d2b4e; color:#94a3b8; border-radius:12px; padding:10px 18px; font-family:'Nunito',sans-serif; font-weight:800; font-size:0.85rem; cursor:pointer; transition:all 0.2s; }
+.tab-btn:hover { border-color:#8b5cf6; color:white; }
+.tab-btn.active { background:linear-gradient(135deg,#7c3aed,#a855f7); border-color:transparent; color:white; box-shadow:0 4px 15px rgba(124,58,237,0.4); }
+
+/* PANELS */
+.panel { display:none; animation:panelIn 0.4s ease both; }
+.panel.active { display:block; }
+@keyframes panelIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+.section-label { font-family:'Fredoka One',cursive; font-size:1.05rem; color:#8b5cf6; letter-spacing:2px; text-transform:uppercase; margin:22px 0 12px; display:flex; align-items:center; gap:8px; }
+.section-label::after { content:''; flex:1; height:2px; background:#2d2b4e; }
+
+/* FLASHCARDS */
+.flashcard-wrap { perspective:1000px; margin:16px auto; max-width:480px; height:240px; cursor:pointer; }
+.flashcard { width:100%; height:100%; position:relative; transform-style:preserve-3d; transition:transform 0.6s cubic-bezier(.22,1,.36,1); }
+.flashcard.flipped { transform:rotateY(180deg); }
+.card-face { position:absolute; inset:0; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px; backface-visibility:hidden; -webkit-backface-visibility:hidden; text-align:center; }
+.card-front { background:linear-gradient(135deg,#1e1b4b,#312e81); border:2px solid #4c1d95; box-shadow:0 8px 32px rgba(124,58,237,0.3); }
+.card-back { background:linear-gradient(135deg,#064e3b,#065f46); border:2px solid #047857; box-shadow:0 8px 32px rgba(5,150,105,0.3); transform:rotateY(180deg); }
+.card-front .word { font-family:'Fredoka One',cursive; font-size:2.2rem; color:#c4b5fd; margin-bottom:8px; }
+.card-front .hint { color:#6d6a99; font-size:0.85rem; font-weight:600; }
+.card-back .cb-emoji { font-size:2.8rem; margin-bottom:10px; }
+.card-back .meaning { font-size:1.1rem; font-weight:800; color:#a7f3d0; margin-bottom:6px; }
+.card-back .example { font-size:0.82rem; color:#6ee7b7; font-style:italic; line-height:1.5; white-space:pre-line; }
+.flip-hint { text-align:center; color:#4c4a6e; font-size:0.82rem; font-weight:700; margin-top:10px; letter-spacing:1px; text-transform:uppercase; animation:blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:0.4} 50%{opacity:1} }
+.fc-nav { display:flex; justify-content:center; align-items:center; gap:20px; margin-top:16px; }
+.fc-btn { background:var(--card2); border:2px solid #2d2b4e; color:white; border-radius:50%; width:44px; height:44px; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.fc-btn:hover { background:#312e81; border-color:#8b5cf6; transform:scale(1.1); }
+.fc-counter { font-family:'Fredoka One',cursive; font-size:1.1rem; color:#94a3b8; min-width:60px; text-align:center; }
+
+/* QUIZ */
+.quiz-progress { display:flex; gap:6px; margin-bottom:20px; }
+.qp-dot { flex:1; height:6px; border-radius:3px; background:#2d2b4e; transition:background 0.3s; }
+.qp-dot.done { background:#10b981; }
+.qp-dot.wrong-dot { background:#ef4444; }
+.qp-dot.current { background:#8b5cf6; animation:currentPulse 1s ease-in-out infinite; }
+@keyframes currentPulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+.quiz-card { background:var(--card); border:2px solid #2d2b4e; border-radius:22px; padding:28px; margin-bottom:16px; }
+.quiz-question { font-family:'Fredoka One',cursive; font-size:1.5rem; color:#e2e8f0; margin-bottom:8px; line-height:1.3; }
+.quiz-sub { font-size:0.85rem; color:#64748b; margin-bottom:22px; font-style:italic; }
+.quiz-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:500px){ .quiz-options{grid-template-columns:1fr;} }
+.quiz-opt { background:var(--card2); border:2.5px solid #2d2b4e; color:#e2e8f0; border-radius:14px; padding:14px 18px; font-family:'Nunito',sans-serif; font-weight:700; font-size:0.9rem; cursor:pointer; text-align:left; transition:all 0.2s; line-height:1.4; }
+.quiz-opt:hover:not(:disabled) { border-color:#8b5cf6; background:#2d2b4e; transform:translateY(-2px); }
+.quiz-opt.correct { background:#065f46; border-color:#10b981; color:#a7f3d0; animation:correctFlash 0.5s ease; }
+.quiz-opt.wrong { background:#7f1d1d; border-color:#ef4444; color:#fca5a5; animation:shake 0.4s ease; }
+@keyframes correctFlash { 0%,100%{transform:scale(1)} 40%{transform:scale(1.04)} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+.quiz-feedback { margin-top:16px; padding:14px 18px; border-radius:14px; font-weight:700; font-size:0.92rem; line-height:1.5; display:none; }
+.quiz-feedback.show { display:block; animation:panelIn 0.3s ease; }
+.quiz-feedback.good { background:#064e3b; border:2px solid #10b981; color:#a7f3d0; }
+.quiz-feedback.bad { background:#450a0a; border:2px solid #ef4444; color:#fca5a5; }
+.next-btn { display:none; margin:14px auto 0; background:linear-gradient(135deg,#7c3aed,#a855f7); color:white; border:none; border-radius:50px; padding:12px 32px; font-family:'Fredoka One',cursive; font-size:1.1rem; cursor:pointer; box-shadow:0 4px 20px rgba(124,58,237,0.4); transition:all 0.2s; }
+.next-btn:hover { transform:scale(1.05); }
+.next-btn.show { display:block; animation:panelIn 0.4s ease 0.2s both; }
+.gameover { background:var(--card); border:2px solid #312e81; border-radius:22px; padding:36px 28px; text-align:center; animation:panelIn 0.5s ease; }
+.gameover .big-emoji { font-size:4rem; margin-bottom:16px; display:block; animation:bounce2 0.8s ease infinite; }
+@keyframes bounce2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+.gameover h2 { font-family:'Fredoka One',cursive; font-size:2rem; margin-bottom:8px; background:linear-gradient(135deg,#f59e0b,#ec4899); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.gameover .score-reveal { font-family:'Fredoka One',cursive; font-size:3.5rem; color:#f59e0b; margin:10px 0; }
+.gameover p { color:#94a3b8; font-size:0.95rem; margin-bottom:20px; }
+.restart-btn { background:linear-gradient(135deg,#7c3aed,#ec4899); color:white; border:none; border-radius:50px; padding:14px 36px; font-family:'Fredoka One',cursive; font-size:1.2rem; cursor:pointer; box-shadow:0 6px 24px rgba(124,58,237,0.4); transition:all 0.2s; }
+.restart-btn:hover { transform:scale(1.05); }
+
+/* EXPLORER */
+.explorer-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:20px; }
+.explorer-card { background:var(--card); border:2px solid #2d2b4e; border-radius:18px; padding:20px; cursor:pointer; transition:all 0.25s; position:relative; overflow:hidden; }
+.explorer-card:hover { transform:translateY(-4px); border-color:var(--accent-color,#8b5cf6); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+.ec-emoji { font-size:2.4rem; margin-bottom:10px; display:block; }
+.ec-word { font-family:'Fredoka One',cursive; font-size:1.15rem; color:#e2e8f0; margin-bottom:4px; }
+.ec-def { font-size:0.82rem; color:#64748b; font-weight:600; line-height:1.4; }
+.ec-tag { display:inline-block; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:50px; margin-top:8px; text-transform:uppercase; letter-spacing:1px; }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.3s; backdrop-filter:blur(4px); }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal { background:#1a1830; border:2px solid #312e81; border-radius:24px; padding:32px; max-width:480px; width:100%; transform:scale(0.9) translateY(20px); transition:all 0.3s cubic-bezier(.22,1,.36,1); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+.modal-overlay.open .modal { transform:none; }
+.modal-emoji { font-size:3rem; text-align:center; display:block; margin-bottom:12px; }
+.modal h3 { font-family:'Fredoka One',cursive; font-size:1.6rem; color:#c4b5fd; text-align:center; margin-bottom:6px; }
+.modal-gloss { text-align:center; color:#64748b; font-size:0.85rem; font-style:italic; margin-bottom:18px; line-height:1.5; }
+.modal-examples { display:flex; flex-direction:column; gap:10px; }
+.modal-ex { background:#221f3a; border-left:4px solid #8b5cf6; border-radius:0 12px 12px 0; padding:12px 14px; }
+.modal-ex .kw { font-family:'Fredoka One',cursive; font-size:1rem; color:#a5b4fc; }
+.modal-ex .mg { font-size:0.78rem; color:#64748b; font-style:italic; margin:2px 0; }
+.modal-ex .tr { font-size:0.88rem; color:#e2e8f0; font-weight:700; }
+.close-modal { display:block; margin:20px auto 0; background:transparent; border:2px solid #312e81; color:#94a3b8; border-radius:50px; padding:8px 24px; font-family:'Nunito',sans-serif; font-weight:800; cursor:pointer; transition:all 0.2s; }
+.close-modal:hover { border-color:#8b5cf6; color:white; }
+
+/* CONFETTI */
+.confetti-piece { position:fixed; pointer-events:none; z-index:999; animation:confettiFall var(--dur,1.5s) ease-in var(--delay,0s) forwards; }
+@keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+
+/* TOAST */
+.streak-toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-80px); background:linear-gradient(135deg,#f59e0b,#ef4444); color:white; font-family:'Fredoka One',cursive; font-size:1.1rem; padding:10px 24px; border-radius:50px; box-shadow:0 8px 30px rgba(245,158,11,0.5); z-index:200; transition:transform 0.4s cubic-bezier(.22,1,.36,1); pointer-events:none; }
+.streak-toast.show { transform:translateX(-50%) translateY(0); }
+
+/* CASSE-TÊTE */
+.casse-menu { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-bottom:20px; }
+.casse-choice { background:var(--card); border:2px solid #2d2b4e; border-radius:22px; padding:24px 20px; cursor:pointer; transition:all 0.25s; text-align:center; position:relative; overflow:hidden; }
+.casse-choice::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(236,72,153,0.08)); opacity:0; transition:opacity 0.3s; }
+.casse-choice:hover { transform:translateY(-6px); border-color:#8b5cf6; box-shadow:0 12px 32px rgba(124,58,237,0.25); }
+.casse-choice:hover::before { opacity:1; }
+.cc-icon { font-size:2.8rem; margin-bottom:12px; display:block; }
+.cc-title { font-family:'Fredoka One',cursive; font-size:1.3rem; color:#e2e8f0; margin-bottom:8px; }
+.cc-desc { font-size:0.82rem; color:#64748b; line-height:1.5; margin-bottom:12px; }
+.cc-badge { display:inline-block; background:linear-gradient(135deg,#7c3aed,#a855f7); color:white; font-size:0.72rem; font-weight:800; padding:4px 12px; border-radius:50px; letter-spacing:1px; }
+
+/* ANAGRAMME */
+.anagram-word { font-family:'Fredoka One',cursive; font-size:2.6rem; color:#f59e0b; text-align:center; letter-spacing:8px; margin:20px 0 8px; text-shadow:0 0 20px rgba(245,158,11,0.4); }
+.anagram-hint { text-align:center; color:#64748b; font-size:0.85rem; margin-bottom:20px; font-style:italic; }
+.anagram-input { width:100%; background:#221f3a; border:2.5px solid #2d2b4e; color:white; border-radius:14px; padding:14px 18px; font-family:'Fredoka One',cursive; font-size:1.4rem; text-align:center; letter-spacing:4px; outline:none; transition:border-color 0.2s; text-transform:lowercase; }
+.anagram-input:focus { border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.2); }
+.anagram-input.correct-input { border-color:#10b981; background:#064e3b; color:#a7f3d0; animation:correctFlash 0.5s ease; }
+.anagram-input.wrong-input { border-color:#ef4444; animation:shake 0.4s ease; }
+.anagram-validate { display:block; width:100%; margin-top:14px; background:linear-gradient(135deg,#7c3aed,#a855f7); color:white; border:none; border-radius:14px; padding:14px; font-family:'Fredoka One',cursive; font-size:1.1rem; cursor:pointer; transition:all 0.2s; }
+.anagram-validate:hover { transform:scale(1.02); box-shadow:0 4px 20px rgba(124,58,237,0.4); }
+.anagram-letters { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:16px 0; }
+.al-tile { background:linear-gradient(135deg,#312e81,#4c1d95); border:2px solid #6d28d9; color:#c4b5fd; font-family:'Fredoka One',cursive; font-size:1.4rem; width:46px; height:46px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; user-select:none; }
+.al-tile:hover { transform:translateY(-3px) scale(1.1); background:linear-gradient(135deg,#4c1d95,#6d28d9); }
+.al-tile.used { opacity:0.3; transform:scale(0.85); cursor:default; }
+
+/* DEVINETTE */
+.devinette-indices { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+.indice-row { background:#221f3a; border-left:4px solid #8b5cf6; border-radius:0 12px 12px 0; padding:12px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:all 0.2s; }
+.indice-row.locked { border-left-color:#2d2b4e; opacity:0.5; cursor:not-allowed; }
+.indice-row:not(.locked):hover { background:#2d2b4e; }
+.indice-icon { font-size:1.4rem; flex-shrink:0; }
+.indice-text { font-size:0.9rem; color:#94a3b8; line-height:1.4; }
+.indice-cost { font-size:0.72rem; font-weight:800; color:#f59e0b; margin-left:auto; white-space:nowrap; }
+.devinette-blanks { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:16px 0; }
+.blank-box { width:36px; height:44px; border-bottom:3px solid #8b5cf6; display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; font-family:'Fredoka One',cursive; font-size:1.4rem; color:#c4b5fd; }
+.blank-space { width:16px; }
+
+/* PAIRES */
+.pairs-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+@media(max-width:480px){ .pairs-grid{grid-template-columns:repeat(3,1fr);} }
+.pair-card { background:linear-gradient(135deg,#1e1b4b,#312e81); border:2px solid #4c1d95; border-radius:14px; padding:12px 8px; min-height:70px; display:flex; align-items:center; justify-content:center; text-align:center; cursor:pointer; transition:all 0.25s; font-weight:700; font-size:0.82rem; line-height:1.3; color:#c4b5fd; user-select:none; }
+.pair-card:hover:not(.matched):not(.flipped) { transform:scale(1.05); border-color:#8b5cf6; }
+.pair-card.flipped { background:linear-gradient(135deg,#312e81,#6d28d9); border-color:#8b5cf6; color:white; transform:scale(1.05); }
+.pair-card.matched { background:linear-gradient(135deg,#064e3b,#065f46); border-color:#10b981; color:#a7f3d0; cursor:default; animation:correctFlash 0.5s ease; }
+.pair-card.wrong-pair { background:linear-gradient(135deg,#7f1d1d,#991b1b); border-color:#ef4444; animation:shake 0.4s ease; }
+.pair-card.hidden { visibility:hidden; pointer-events:none; }
+
+/* SHARED GAME UI */
+.casse-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.back-btn { background:var(--card2); border:2px solid #2d2b4e; color:#94a3b8; border-radius:12px; padding:8px 16px; font-family:'Nunito',sans-serif; font-weight:800; font-size:0.85rem; cursor:pointer; transition:all 0.2s; }
+.back-btn:hover { border-color:#8b5cf6; color:white; }
+.casse-title { font-family:'Fredoka One',cursive; font-size:1.2rem; color:#e2e8f0; }
+.casse-score-pill { margin-left:auto; background:linear-gradient(135deg,#f59e0b,#ef4444); color:white; font-family:'Fredoka One',cursive; font-size:0.9rem; padding:6px 14px; border-radius:50px; }
+.casse-progress { display:flex; gap:5px; margin-bottom:16px; }
+.cp-dot { flex:1; height:5px; border-radius:3px; background:#2d2b4e; transition:background 0.4s; }
+.cp-dot.cp-done { background:#10b981; }
+.cp-dot.cp-cur { background:#8b5cf6; animation:currentPulse 1s ease-in-out infinite; }
+.game-card { background:var(--card); border:2px solid #2d2b4e; border-radius:22px; padding:24px; margin-bottom:16px; }
+.game-feedback { margin-top:14px; padding:12px 16px; border-radius:12px; font-weight:700; font-size:0.9rem; line-height:1.5; display:none; }
+.game-feedback.show { display:block; animation:panelIn 0.3s ease; }
+.game-feedback.good { background:#064e3b; border:2px solid #10b981; color:#a7f3d0; }
+.game-feedback.bad { background:#450a0a; border:2px solid #ef4444; color:#fca5a5; }
+.game-next { display:none; margin:14px auto 0; background:linear-gradient(135deg,#7c3aed,#a855f7); color:white; border:none; border-radius:50px; padding:12px 32px; font-family:'Fredoka One',cursive; font-size:1.1rem; cursor:pointer; box-shadow:0 4px 20px rgba(124,58,237,0.4); transition:all 0.2s; }
+.game-next.show { display:block; animation:panelIn 0.4s ease 0.2s both; }
+.game-next:hover { transform:scale(1.05); }
+.pairs-info { text-align:center; color:#64748b; font-size:0.85rem; margin-bottom:14px; font-style:italic; }
+.pairs-timer { font-family:'Fredoka One',cursive; font-size:1.1rem; color:#f59e0b; text-align:center; margin-bottom:12px; }
+
+
+/* CARTES MENTALES */
+.mindmap-intro { background:var(--card); border:2px solid #2d2b4e; border-radius:18px; padding:18px 20px; margin-bottom:20px; color:#94a3b8; font-size:0.92rem; line-height:1.6; }
+.mindmap-intro strong { color:#c4b5fd; }
+.mindmap-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
+.mindmap-card { background:var(--card); border:2px solid #2d2b4e; border-radius:20px; overflow:hidden; cursor:pointer; transition:all 0.25s; }
+.mindmap-card:hover { transform:translateY(-5px); box-shadow:0 12px 32px rgba(0,0,0,0.4); }
+.mindmap-thumb { width:100%; aspect-ratio:16/9; object-fit:cover; object-position:top; display:block; }
+.mindmap-info { padding:14px 16px; }
+.mindmap-num { font-size:0.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:#8b5cf6; margin-bottom:4px; }
+.mindmap-title { font-family:'Fredoka One',cursive; font-size:1.05rem; color:#e2e8f0; margin-bottom:4px; line-height:1.3; }
+.mindmap-desc { font-size:0.78rem; color:#64748b; line-height:1.4; }
+
+/* LIGHTBOX */
+.lightbox-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:300; display:flex; align-items:center; justify-content:center; padding:16px; opacity:0; pointer-events:none; transition:opacity 0.3s; backdrop-filter:blur(6px); }
+.lightbox-overlay.open { opacity:1; pointer-events:all; }
+.lightbox-inner { position:relative; max-width:96vw; max-height:92vh; display:flex; flex-direction:column; align-items:center; gap:12px; transform:scale(0.9); transition:transform 0.3s cubic-bezier(.22,1,.36,1); }
+.lightbox-overlay.open .lightbox-inner { transform:scale(1); }
+.lightbox-img { max-width:100%; max-height:80vh; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.8); object-fit:contain; }
+.lightbox-caption { font-family:'Fredoka One',cursive; font-size:1.1rem; color:#c4b5fd; text-align:center; }
+.lightbox-nav { display:flex; gap:16px; align-items:center; }
+.lb-btn { background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.2); color:white; border-radius:50%; width:46px; height:46px; font-size:1.3rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); }
+.lb-btn:hover { background:rgba(139,92,246,0.4); border-color:#8b5cf6; transform:scale(1.1); }
+.lb-close { position:absolute; top:-12px; right:-12px; background:#ef4444; border:none; color:white; border-radius:50%; width:36px; height:36px; font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:800; transition:all 0.2s; z-index:10; }
+.lb-close:hover { background:#dc2626; transform:scale(1.15); }
+.lb-counter { font-family:'Fredoka One',cursive; color:#94a3b8; font-size:1rem; min-width:60px; text-align:center; }
+</style>
+</head>
+<body>
+<canvas id="starCanvas"></canvas>
+<div class="streak-toast" id="streakToast">🔥 Combo x<span id="comboNum">2</span>!</div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalContent"></div></div>
+
+<!-- LIGHTBOX CARTES MENTALES -->
+<div class="lightbox-overlay" id="lightboxOverlay">
+  <div class="lightbox-inner">
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+    <img class="lightbox-img" id="lbImg" src="" alt="">
+    <div class="lightbox-caption" id="lbCaption"></div>
+    <div class="lightbox-nav">
+      <button class="lb-btn" onclick="lbPrev()">◀</button>
+      <span class="lb-counter" id="lbCounter">1 / 7</span>
+      <button class="lb-btn" onclick="lbNext()">▶</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="hero">
+    <div class="hero-badge">🌴 Langue Kanak</div>
+    <h1>Kanak Quest!</h1>
+    <p>Maîtrise les classificateurs, les multiples et la fréquence en t'amusant !</p>
+    <div class="score-bar">
+      <div class="score-pill">⭐ <span>Score</span> <span class="val" id="scoreVal">0</span></div>
+      <div class="score-pill">🔥 <span>Combo</span> <span class="val" id="comboVal">0</span></div>
+      <div class="score-pill">❤️ <span class="val" id="livesVal">3</span> <span>vies</span></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('flashcards',this)">🃏 Flashcards</button>
+    <button class="tab-btn" onclick="switchTab('quiz',this)">🎯 Quiz</button>
+    <button class="tab-btn" onclick="switchTab('explorer',this)">🗺️ Explorer</button>
+    <button class="tab-btn" onclick="switchTab('mindmaps',this)">🧠 Cartes Mentales</button>
+    <button class="tab-btn" onclick="switchTab('casse',this)">🧩 Casse-Tête</button>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <div class="panel active" id="panel-flashcards">
+    <div class="section-label">🃏 Retourne les cartes pour apprendre</div>
+    <div class="flashcard-wrap" onclick="flipCard()">
+      <div class="flashcard" id="flashcard">
+        <div class="card-face card-front">
+          <div class="word" id="fcWord"></div>
+          <div class="hint" id="fcHint"></div>
+        </div>
+        <div class="card-face card-back">
+          <div class="cb-emoji" id="fcEmoji"></div>
+          <div class="meaning" id="fcMeaning"></div>
+          <div class="example" id="fcExample"></div>
+        </div>
+      </div>
+    </div>
+    <div class="flip-hint">👆 Clique pour retourner</div>
+    <div class="fc-nav">
+      <button class="fc-btn" onclick="prevCard()">◀</button>
+      <div class="fc-counter" id="fcCounter">1 / 8</div>
+      <button class="fc-btn" onclick="nextCard()">▶</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="panel" id="panel-quiz">
+    <div class="section-label">🎯 Teste tes connaissances</div>
+    <div id="quizArea"></div>
+  </div>
+
+  <!-- EXPLORER -->
+  <div class="panel" id="panel-explorer">
+    <div class="section-label">🗺️ Explore les classificateurs</div>
+    <div class="explorer-grid" id="explorerGrid"></div>
+    <div class="section-label">🔢 Préfixe AU- : fréquence</div>
+    <div class="explorer-grid" id="auGrid"></div>
+    <div class="section-label">👥 Comptage des personnes (AA-)</div>
+    <div class="explorer-grid" id="personnGrid"></div>
+  </div>
+
+  <!-- CARTES MENTALES -->
+  <div class="panel" id="panel-mindmaps">
+    <div class="section-label">🧠 Résumés des cartes mentales</div>
+    <div id="mindmapsContent"></div>
+  </div>
+
+  <!-- CASSE-TÊTE -->
+  <div class="panel" id="panel-casse">
+    <div class="section-label">🧩 Choisis ton défi</div>
+    <div class="casse-menu" id="casseMenu">
+      <div class="casse-choice" onclick="startCasse('anagram')">
+        <div class="cc-icon">🔀</div>
+        <div class="cc-title">Anagrammes</div>
+        <div class="cc-desc">Remets les lettres dans le bon ordre pour trouver le mot kanak !</div>
+        <div class="cc-badge">10 défis</div>
+      </div>
+      <div class="casse-choice" onclick="startCasse('devinette')">
+        <div class="cc-icon">🔍</div>
+        <div class="cc-title">Devinettes</div>
+        <div class="cc-desc">Trouve le mot kanak à partir d'indices et de la définition cachée !</div>
+        <div class="cc-badge">8 énigmes</div>
+      </div>
+      <div class="casse-choice" onclick="startCasse('paires')">
+        <div class="cc-icon">🃏</div>
+        <div class="cc-title">Paires</div>
+        <div class="cc-desc">Associe chaque mot kanak à sa traduction française en mémoire !</div>
+        <div class="cc-badge">12 paires</div>
+      </div>
+    </div>
+    <div id="casseGame" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ===== STARS =====
+(function(){
+  const c = document.getElementById('starCanvas');
+  c.width = window.innerWidth; c.height = window.innerHeight;
+  const ctx = c.getContext('2d');
+  for(let i=0;i<120;i++){
+    ctx.beginPath();
+    ctx.arc(Math.random()*c.width, Math.random()*c.height, Math.random()*1.5+0.3, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.5+0.1})`;
+    ctx.fill();
+  }
+})();
+
+// ===== DATA =====
+const flashcards = [
+  {word:'wa-neda ?',hint:'Classificateur interrogatif',emoji:'⛵',meaning:'« Combien ? » — objets longs',example:'wameda wany na bwa on ?\n"Combien de bateaux sur la plage ?"'},
+  {word:'neya-neda ?',hint:'Classificateur interrogatif',emoji:'🎋',meaning:'« Combien ? » — morceaux/portions allongés',example:'neya-neda neya-ga ?\n"Combien de morceaux de bambou ?"'},
+  {word:'fhâa-neda ?',hint:'Classificateur interrogatif',emoji:'🪵',meaning:'« Combien ? » — charges, fagots',example:'fhâa-neda fhâ-ciic ?\n"Combien de fagots de bois ?"'},
+  {word:'pwaneda ?',hint:'Interrogatif neutre',emoji:'🌞',meaning:'Interrogatif neutre — remplace les autres',example:'pwaneda shêlâ-at ?\n"Quelle heure est-il ?"'},
+  {word:'au-',hint:'Préfixe de fréquence',emoji:'🔁',meaning:'Fréquence / répétition — "fois"',example:'au-xan = trois fois\nau-neda ? = combien de fois ?'},
+  {word:'au-xan',hint:'Fréquence numérale',emoji:'3️⃣',meaning:'Trois fois',example:'ku au-xan fâàla-m\n"Tu as fait le chemin trois fois"'},
+  {word:'(h)na',hint:'Morphème locatif',emoji:'📍',meaning:'Lieu + temps + processus (nominalise un verbe)',example:'hna hmwalixa-n\n= "le fait de voyager"'},
+  {word:'au-xoxo ?',hint:'Fréquence quantificateur',emoji:'🔥',meaning:'Beaucoup de fois / souvent ?',example:'au-xoxo hna hmwalixa-n ?\n"As-tu souvent fait le voyage ?"'},
+  // Comptage des personnes
+  {word:'aaxiik',hint:'Comptage des personnes — 1 homme',emoji:'🧑',meaning:'1 homme = 20 personnes',example:'aaxiik ak\n"Un homme" (représente 20 personnes)'},
+  {word:'aaru',hint:'Comptage des personnes — 2 hommes',emoji:'👥',meaning:'2 hommes = 40 personnes',example:'aaru ak\n"Deux hommes" (représente 40 personnes)'},
+  {word:'aaxan',hint:'Comptage des personnes — 3 hommes',emoji:'👨‍👨‍👦',meaning:'3 hommes = 60 personnes',example:'aaxan ak\n"Trois hommes" (représente 60 personnes)'},
+  {word:'aavaak',hint:'Comptage des personnes — 4 hommes',emoji:'👨‍👩‍👧‍👦',meaning:'4 hommes = 80 personnes',example:'aavaak ak\n"Quatre hommes" (représente 80 personnes)'},
+  {word:'aanem',hint:'Comptage des personnes — 5 hommes',emoji:'🖐️',meaning:'5 hommes = 100 personnes',example:'aanem ak\n"Cinq hommes" (représente 100 personnes)'},
+  {word:'aanemgiik',hint:'Comptage des personnes — 6 hommes',emoji:'6️⃣',meaning:'6 hommes = 120 personnes',example:'aanemgiik ak\n"Six hommes" (représente 120 personnes)'},
+  {word:'aanemdu',hint:'Comptage des personnes — 7 hommes',emoji:'7️⃣',meaning:'7 hommes = 140 personnes',example:'aanemdu ak\n"Sept hommes" (représente 140 personnes)'},
+  {word:'aanemgan',hint:'Comptage des personnes — 8 hommes',emoji:'8️⃣',meaning:'8 hommes = 160 personnes',example:'aanemgan ak\n"Huit hommes" (représente 160 personnes)'},
+  {word:'aanembaak',hint:'Comptage des personnes — 9 hommes',emoji:'9️⃣',meaning:'9 hommes = 180 personnes',example:'aanembaak ak\n"Neuf hommes" (représente 180 personnes)'},
+  {word:'tuujic',hint:'Comptage des personnes — 10 hommes',emoji:'🔟',meaning:'10 hommes = 200 personnes',example:'tuujic ak\n"Dix hommes" (représente 200 personnes)'},
+];
+
+const quizQ = [
+  {q:'pwaneda shêlâ-at ?',sub:'Que signifie cette phrase ?',opts:['Combien de fois ?','Quelle heure est-il ?','Combien de bateaux ?','Combien de fagots ?'],ans:1,fb:'✅ pwaneda = interrogatif neutre. shêlâ-at = signe-soleil → "Quelle heure est-il ?"'},
+  {q:'Quel classificateur pour des OBJETS LONGS ?',sub:'Choisis le bon classificateur',opts:['neya-neda ?','fhâa-neda ?','wa-neda ?','au-neda ?'],ans:2,fb:'✅ wa-neda ? est le classificateur pour les objets longs (bateaux, arbres…)'},
+  {q:'ku au-xan fâàla-m',sub:'Combien de fois ?',opts:['Une fois','Deux fois','Trois fois','Beaucoup de fois'],ans:2,fb:'✅ au-xan = "trois fois". au- = fois / xan = trois !'},
+  {q:'Que fait le morphème (h)na ?',sub:'Rôle grammatical',opts:['Il compte les objets','Il nominalise un groupe verbal','Il marque le pluriel','Il indique le passé'],ans:1,fb:'✅ (h)na nominalise un verbe, exprimant processus + lieu/temps.'},
+  {q:'neya-neda neya-ga ?',sub:'Que demande-t-on ?',opts:['Combien de bateaux ?','Combien de fagots ?','Combien de morceaux de bambou ?','Combien de voyages ?'],ans:2,fb:'✅ neya-neda = combien de morceaux ? / neya-ga = morceau-bambou'},
+  {q:'au-xoxo hna hmwalixa-n ?',sub:'Traduction correcte ?',opts:['Combien de bateaux ?','As-tu souvent fait le voyage ?','Trois fois le chemin ?','Quelle heure est-il ?'],ans:1,fb:'✅ au-xoxo = plusieurs fois / hna = locatif / hmwalixa-n = voyage'},
+  {q:'Comment dit-on "deux fois" ?',sub:'Préfixe au- + numéral',opts:['au-xan','au-ena','au-me','au-neda'],ans:2,fb:'✅ au-me ! au- = fois, me = deux. Logique !'},
+  {q:'fhâa-neda s\'utilise pour…',sub:'Quel type d\'objet ?',opts:['Des fruits','Des charges et fagots','Des personnes','Des lieux'],ans:1,fb:'✅ fhâa = charge/fagot. fhâa-neda ? = "combien de fagots ?"'},
+  // Quiz comptage des personnes
+  {q:'Combien de personnes représente "aaxiik" ?',sub:'Comptage des personnes',opts:['10 personnes','20 personnes','40 personnes','100 personnes'],ans:1,fb:'✅ aaxiik = 1 homme = 20 personnes !'},
+  {q:'Comment dit-on "2 hommes" (40 personnes) ?',sub:'Comptage des personnes',opts:['aaxiik','aaxan','aaru','aavaak'],ans:2,fb:'✅ aaru = 2 hommes = 40 personnes !'},
+  {q:'Quel mot représente 100 personnes ?',sub:'Comptage des personnes',opts:['aaxan','aavaak','aanem','tuujic'],ans:2,fb:'✅ aanem = 5 hommes = 100 personnes !'},
+  {q:'tuujic représente combien de personnes ?',sub:'Comptage des personnes',opts:['100 personnes','150 personnes','180 personnes','200 personnes'],ans:3,fb:'✅ tuujic = 10 hommes = 200 personnes !'},
+  {q:'Quel mot correspond à "9 hommes" ?',sub:'Comptage des personnes',opts:['aanemgan','aanembaak','aanemdu','aanemgiik'],ans:1,fb:'✅ aanembaak = 9 hommes = 180 personnes !'},
+];
+
+const explorerData = [
+  {emoji:'⛵',word:'wa-neda ?',def:'« combien ? » — objets longs (bateaux, arbres…)',color:'#7c3aed',tag:'classificateur',tagBg:'#4c1d95',tagFg:'#c4b5fd',
+   examples:[{kw:'wameda wany na bwa on ?',mg:'combien? bateau LOC sur plage',tr:'« Combien de bateaux y a-t-il sur la plage ? »'}]},
+  {emoji:'🎋',word:'neya-neda ?',def:'« combien ? » — morceaux, portions allongés',color:'#059669',tag:'classificateur',tagBg:'#064e3b',tagFg:'#a7f3d0',
+   examples:[{kw:'neya-neda neya-ga ?',mg:'morceau-combien? morceau-bambou',tr:'« Combien de morceaux de bambou ? »'}]},
+  {emoji:'🪵',word:'fhâa-neda ?',def:'« combien ? » — charges, fagots de bois',color:'#ea580c',tag:'classificateur',tagBg:'#431407',tagFg:'#fed7aa',
+   examples:[{kw:'fhâa-neda fhâ-ciic ?',mg:'charge-combien? charge-bois',tr:'« Combien de fagots de bois ? »'}]},
+  {emoji:'🌞',word:'pwaneda ?',def:'Interrogatif neutre — remplace les classificateurs spécialisés',color:'#f59e0b',tag:'neutre',tagBg:'#451a03',tagFg:'#fde68a',
+   examples:[{kw:'pwaneda shêlâ-at ?',mg:'fruit-combien? signe-soleil',tr:'« Quelle heure est-il ? »'},{kw:'pwaneda shêlâ-ar-i na ?',mg:'fruit-combien? signe-soleil-REL 1SG',tr:'« Combien de temps me faut-il ? »'}]},
+  {emoji:'📍',word:'(h)na',def:'Morphème locatif — nominalise un groupe verbal (processus + lieu/temps)',color:'#e11d48',tag:'morphème',tagBg:'#4c0519',tagFg:'#fecdd3',
+   examples:[{kw:'hmwalixa-n → hna hmwalixa-n',mg:'voyage → LOC voyage',tr:'« il fait le voyage » → « le fait de voyager »'},{kw:'au-xoxo hna hmwalixa-n ?',mg:'fois-plusieurs LOC voyage-POSS.3SG',tr:'« As-tu souvent fait le voyage ? »'}]},
+];
+
+const auData = [
+  {emoji:'1️⃣',word:'au-ena ?',def:'Une fois ?',color:'#6d28d9'},
+  {emoji:'2️⃣',word:'au-me ?',def:'Deux fois ?',color:'#7c3aed'},
+  {emoji:'3️⃣',word:'au-xan',def:'Trois fois',color:'#8b5cf6'},
+  {emoji:'❓',word:'au-neda ?',def:'Combien de fois ? (neutre)',color:'#059669'},
+  {emoji:'🔥',word:'au-xoxo ?',def:'Beaucoup de fois ?',color:'#dc2626'},
+  {emoji:'💥',word:'au-khoxo ?',def:'Beaucoup beaucoup de fois ?',color:'#b91c1c'},
+  {emoji:'📅',word:'au-yo ?',def:'Souvent ?',color:'#0284c7'},
+  {emoji:'⚡',word:'au-yo-xoxo ?',def:'Très souvent ?',color:'#0369a1'},
+];
+
+const personnData = [
+  {emoji:'🧑',word:'aaxiik',def:'1 homme = 20 personnes',color:'#7c3aed'},
+  {emoji:'👥',word:'aaru',def:'2 hommes = 40 personnes',color:'#6d28d9'},
+  {emoji:'👨‍👨‍👦',word:'aaxan',def:'3 hommes = 60 personnes',color:'#8b5cf6'},
+  {emoji:'👨‍👩‍👧‍👦',word:'aavaak',def:'4 hommes = 80 personnes',color:'#2563eb'},
+  {emoji:'🖐️',word:'aanem',def:'5 hommes = 100 personnes',color:'#059669'},
+  {emoji:'6️⃣',word:'aanemgiik',def:'6 hommes = 120 personnes',color:'#0891b2'},
+  {emoji:'7️⃣',word:'aanemdu',def:'7 hommes = 140 personnes',color:'#ea580c'},
+  {emoji:'8️⃣',word:'aanemgan',def:'8 hommes = 160 personnes',color:'#e11d48'},
+  {emoji:'9️⃣',word:'aanembaak',def:'9 hommes = 180 personnes',color:'#dc2626'},
+  {emoji:'🔟',word:'tuujic',def:'10 hommes = 200 personnes',color:'#f59e0b'},
+];
+
+// ===== STATE =====
+let score=0, combo=0, lives=3;
+let fcIndex=0, fcFlipped=false;
+let quizIndex=0, quizDone=false, quizResults=[];
+
+// ===== TABS =====
+function switchTab(name, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='quiz' && !quizDone) renderQuiz();
+  if(name==='explorer') renderExplorer();
+  if(name==='mindmaps') renderMindmaps();
+}
+
+// ===== FLASHCARDS =====
+function renderFlashcard(){
+  const fc = flashcards[fcIndex];
+  document.getElementById('fcWord').textContent = fc.word;
+  document.getElementById('fcHint').textContent = fc.hint;
+  document.getElementById('fcEmoji').textContent = fc.emoji;
+  document.getElementById('fcMeaning').textContent = fc.meaning;
+  document.getElementById('fcExample').textContent = fc.example;
+  document.getElementById('fcCounter').textContent = (fcIndex+1)+' / '+flashcards.length;
+  fcFlipped = false;
+  document.getElementById('flashcard').classList.remove('flipped');
+}
+function flipCard(){ fcFlipped=!fcFlipped; document.getElementById('flashcard').classList.toggle('flipped',fcFlipped); }
+function nextCard(){ fcIndex=(fcIndex+1)%flashcards.length; renderFlashcard(); }
+function prevCard(){ fcIndex=(fcIndex-1+flashcards.length)%flashcards.length; renderFlashcard(); }
+renderFlashcard();
+
+// ===== QUIZ =====
+function renderQuiz(){
+  if(quizIndex>=quizQ.length){ renderGameOver(); return; }
+  const q = quizQ[quizIndex];
+  const dots = quizQ.map((_,i)=>{
+    let cls = i<quizIndex?(quizResults[i]?'qp-dot done':'qp-dot wrong-dot'):i===quizIndex?'qp-dot current':'qp-dot';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+  document.getElementById('quizArea').innerHTML = `
+    <div class="quiz-progress">${dots}</div>
+    <div class="quiz-card">
+      <div class="quiz-question">${q.q}</div>
+      <div class="quiz-sub">${q.sub}</div>
+      <div class="quiz-options">
+        ${q.opts.map((o,i)=>`<button class="quiz-opt" onclick="answerQuiz(${i})">${o}</button>`).join('')}
+      </div>
+      <div class="quiz-feedback" id="quizFeedback"></div>
+    </div>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Suivant →</button>`;
+}
+
+function answerQuiz(chosen){
+  if(document.querySelectorAll('.quiz-opt[disabled]').length) return;
+  const q = quizQ[quizIndex];
+  document.querySelectorAll('.quiz-opt').forEach(o=>o.disabled=true);
+  const opts = document.querySelectorAll('.quiz-opt');
+  const correct = chosen===q.ans;
+  opts[chosen].classList.add(correct?'correct':'wrong');
+  if(!correct) opts[q.ans].classList.add('correct');
+  const fb = document.getElementById('quizFeedback');
+  fb.textContent = correct ? q.fb : '❌ '+q.fb;
+  fb.className = 'quiz-feedback show '+(correct?'good':'bad');
+  quizResults[quizIndex] = correct;
+  if(correct){ combo++; addScore(10+combo*5); if(combo>=2) showComboToast(); if(combo>=3) spawnConfetti(); }
+  else { combo=0; lives=Math.max(0,lives-1); document.getElementById('livesVal').textContent=lives; }
+  updateHUD();
+  document.getElementById('nextBtn').classList.add('show');
+}
+
+function nextQuestion(){ quizIndex++; renderQuiz(); }
+
+function renderGameOver(){
+  quizDone=true;
+  const correct=quizResults.filter(Boolean).length;
+  const pct=Math.round((correct/quizQ.length)*100);
+  const emoji=pct>=80?'🏆':pct>=50?'⭐':'💪';
+  const msg=pct>=80?'Incroyable ! Tu maîtrises le kanak !':pct>=50?'Bon travail, continue !':'Continue à pratiquer !';
+  document.getElementById('quizArea').innerHTML=`
+    <div class="gameover">
+      <span class="big-emoji">${emoji}</span>
+      <h2>Quiz terminé !</h2>
+      <div class="score-reveal">${correct}/${quizQ.length}</div>
+      <p>${msg}<br>Score final : <strong style="color:#f59e0b">${score} pts</strong></p>
+      <button class="restart-btn" onclick="restartQuiz()">🔄 Recommencer</button>
+    </div>`;
+  if(pct>=80) setTimeout(spawnConfetti,200);
+}
+
+function restartQuiz(){
+  quizIndex=0; quizDone=false; quizResults=[];
+  score=0; combo=0; lives=3;
+  document.getElementById('scoreVal').textContent=0;
+  document.getElementById('comboVal').textContent=0;
+  document.getElementById('livesVal').textContent=3;
+  renderQuiz();
+}
+
+// ===== EXPLORER =====
+function renderExplorer(){
+  document.getElementById('explorerGrid').innerHTML = explorerData.map((d,i)=>`
+    <div class="explorer-card" style="--accent-color:${d.color}" onclick="openModal(${i})">
+      <span class="ec-emoji">${d.emoji}</span>
+      <div class="ec-word">${d.word}</div>
+      <div class="ec-def">${d.def}</div>
+      <span class="ec-tag" style="background:${d.tagBg};color:${d.tagFg}">${d.tag}</span>
+    </div>`).join('');
+  document.getElementById('auGrid').innerHTML = auData.map(d=>`
+    <div class="explorer-card" style="--accent-color:${d.color}">
+      <span class="ec-emoji">${d.emoji}</span>
+      <div class="ec-word">${d.word}</div>
+      <div class="ec-def">${d.def}</div>
+      <span class="ec-tag" style="background:#1e1b4b;color:#a5b4fc">fréquence</span>
+    </div>`).join('');
+  document.getElementById('personnGrid').innerHTML = personnData.map(d=>`
+    <div class="explorer-card" style="--accent-color:${d.color}">
+      <span class="ec-emoji">${d.emoji}</span>
+      <div class="ec-word">${d.word}</div>
+      <div class="ec-def">${d.def}</div>
+      <span class="ec-tag" style="background:#1e1b4b;color:#a5b4fc">personnes</span>
+    </div>`).join('');
+}
+
+function openModal(i){
+  const d = explorerData[i];
+  const exHtml = d.examples.map(e=>`
+    <div class="modal-ex">
+      <div class="kw">${e.kw}</div>
+      <div class="mg">${e.mg}</div>
+      <div class="tr">${e.tr}</div>
+    </div>`).join('');
+  document.getElementById('modalContent').innerHTML=`
+    <span class="modal-emoji">${d.emoji}</span>
+    <h3>${d.word}</h3>
+    <div class="modal-gloss">${d.def}</div>
+    <div class="modal-examples">${exHtml}</div>
+    <button class="close-modal" onclick="closeModal()">✕ Fermer</button>`;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+document.addEventListener('DOMContentLoaded', function(){
+  const mo = document.getElementById('modalOverlay');
+  if(mo) mo.addEventListener('click',e=>{ if(e.target===mo) closeModal(); });
+});
+
+// ===== HUD =====
+function addScore(n){
+  score+=n;
+  const el=document.getElementById('scoreVal');
+  el.textContent=score;
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+}
+function updateHUD(){
+  const cv=document.getElementById('comboVal');
+  cv.textContent=combo;
+  cv.classList.remove('bump'); void cv.offsetWidth; cv.classList.add('bump');
+}
+function showComboToast(){
+  const el=document.getElementById('streakToast');
+  document.getElementById('comboNum').textContent=combo;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// ===== CONFETTI =====
+function spawnConfetti(){
+  const colors=['#f59e0b','#ec4899','#8b5cf6','#10b981','#ef4444','#3b82f6'];
+  for(let i=0;i<40;i++){
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    const size=6+Math.random()*8;
+    el.style.cssText=`left:${Math.random()*100}vw;top:0;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};--dur:${1.2+Math.random()*1.2}s;--delay:${Math.random()*0.6}s;`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),3000);
+  }
+}
+
+// ===== MINDMAPS =====
+const mindmapsData = [
+  {titre:'9.1.4 — Somme & Soustraction',icon:'➕',color:'#2563eb',sections:[
+    {label:'SOMME',color:'#2563eb',items:['khooba-t : nom dépendant — "nombre, chiffre" — quantifie le discret','bwaya-t : quantifie sans discrétiser — quantité globale, +/- humains','Ex. 50 : aaneda khooba ak me thaamwa na Caveet ? = "combien y a-t-il d\'hommes et de femmes à Tiabet ?"','Ex. 51 : pwaneda bwaya mwani xe je shi-m ? = "combien d\'argent as-tu ?"']},
+    {label:'ADDITION',color:'#059669',items:['Se fait avec le locatif bwa (dérivé de bwaa-t "tête, sommet")','Et la coordination xa "aussi" dans les autres contextes','Ex. 53 : pwa-giik shela-at xa hmawa-t = "une heure et demie"','S\'exprime aussi par aa (itératif) + hiik "un autre" : aa hiik mwa = "encore un autre"']},
+    {label:'SOUSTRACTION',color:'#ea580c',items:['Exprimée par le quantificateur restrictif pwâ','Repère de comparaison localisé par nao (construction comparative)','Ex. 54 : pwâ pwâmwayu nao tujic = "un peu moins de dix"']},
+    {label:'RÉSUMÉ',color:'#8b5cf6',items:['SOMME → khooba-t (discret) / bwaya-t (global)','ADDITION → bwa (locatif) + xa (aussi) ou aa hiik mwa','SOUSTRACTION → pwâ (restrictif) + nao (repère de comparaison)']},
+  ]},
+  {titre:'9 — Quantification & Détermination Quantitative',icon:'⚖️',color:'#7c3aed',sections:[
+    {label:'NUMÉRAUX AU-DELÀ DE "UN"',color:'#2563eb',items:['N + numéral → somme (postposé)','numéral + N → fraction (antéposé)','N x numéral → prédication','Antéposé : fractionne l\'entité | Postposé : réfère à la somme/totalité','Ex. axe thaamwa aaxan : "il a vu trois femmes" (sens différent selon position)']},
+    {label:'RÉFÉRENCE DÉJÀ DÉTERMINÉE',color:'#059669',items:['Nom quantifié + déterminant déictique ou anaphorique','Le numéral "un" ou "deux" est redondant → forme d\'insistance','Ex. 46 : i axi agu ma(h)leeli aa-xan = "il a vu les trois hommes (en question)"','Ex. 47 : 3DU uya hmwiny aa-ru ak ma(h)liili = "ces deux hommes sont venus ici"']},
+    {label:'NOMBRE APPROXIMATIF',color:'#f59e0b',items:['Quand le nombre est approximatif → l\'ordre antéposé (fraction) apparaît (cf. ex. 56)']},
+    {label:'LES ÉNONCÉS CONSTITUENT',color:'#e11d48',items:['(49a) construction de quantification par fraction sur la classe','(49b) somme sur une classe prédéfinie (présence du déictique hleena)','(49c) référence à une totalité/globalité (il n\'y en a que trois)']},
+  ]},
+  {titre:'Classificateurs Numériques — Complément',icon:'🔢',color:'#059669',sections:[
+    {label:'LIÉS À LA FORME',color:'#2563eb',items:['pwa-giik (pwat "fruit") → un objet rond (fruits, jours, heures…)','wa-giik → un objet allongé/long']},
+    {label:'LIÉS À UN GROUPEMENT / PRÉSENTATION',color:'#059669',items:['hiva-giik (hip "tas") → un tas','fuda-giik (fuung "assembler") → petit tas, poignée, touffe','fhâa-xiik (fhâ-t "charge") → fagot de bois','kîî-xiik (kîî-t "paquet") → botte de paille / fagot','mama-giik (ma "paille") → rangée de paille (première sur un toit)','ida-giik (ida-t "rangée") → rangée (cocotiers, ignames, bananiers)','hnemw-tiik / hnem-giik (hniwe "envelopper") → objet enveloppé (feuille, tissu, papier)']},
+    {label:'PRÉLÈVEMENT LIÉ À LA FORME',color:'#ea580c',items:['hava-giik (largeur, portion) → objet large, plat','neya-giik (morceau allongé) → morceau allongé coupé en long','neya-du → deux morceaux | neya-gan → trois morceaux','hmava-giik (petit bout) → morceau plat coupé en travers','khaxa-giik (morceau de bois) → planche coupée en long','âda-giik (partager) → morceau, tranche (pastèque…)']},
+    {label:'SPÉCIFIQUES À UNE CATÉGORIE',color:'#8b5cf6',items:['gu-xiik (filoche) → une filoche de poisson','dee-xiik (main de banane) → une main de bananes','maa-xiik (lien de paille) → lot de trois ignames/poissons attachés','wat-giik / wâ-xiik (lien, corde) → paire de roussettes attachées (cérémonies)']},
+    {label:'CLASSIFICATEUR DE FRÉQUENCE',color:'#e11d48',items:['au-riik → une fois | au-ru → deux fois | au-xan → trois fois']},
+  ]},
+  {titre:'Classificateurs Numériques — Emploi',icon:'📐',color:'#ea580c',sections:[
+    {label:'OBJETS LONGS (wa-)',color:'#2563eb',items:['wa-giik → un | wa-du → deux | wa-gan → trois','Utilisé pour : bateaux, voitures, lits, planches…','wa- est associé à la numération des objets longs']},
+    {label:'OBJETS RONDS — pwa-t "fruit"',color:'#059669',items:['Utilisé pour fruits, objets ronds, cycles (jours, mois, années, heures)','Ex. pwa-du pwâ-mago = "deux mangues"','La distinction pwa- (rond) / wa- (long) tend à se neutraliser → pwa- devient général']},
+    {label:'EMPLOI ET NUMÉRATION',color:'#ea580c',items:['Structure : [ classificateur + numéral + nom ]','Base quinaire jusqu\'à dix (tujic), décimal jusqu\'à 19, vigésimal au-delà','pwa-giik "un", pwa-du "deux", pwa-gan "trois", pwa-baak "quatre", pwa-nem "cinq"','pwa-nem-giik "six" (5+1), pwa-nem-du "sept" (5+2)…','Dizaines : tujic xa bwaat pwagiik = "onze" (10+1) | pwanemgiik = "seize" (10+6)']},
+    {label:'VARIATION SELON LE TYPE',color:'#f59e0b',items:['Un même nom → différents classificateurs selon la notion mise en avant','aaxik shâlaga (vivant) → aaxik | pwagiik shâlaga (mort/forme) → pwagiik','Le sens ou le point de vue choisi oriente le classificateur']},
+  ]},
+  {titre:'Tableau Numérique — Numéraux Cardinaux',icon:'🔢',color:'#f59e0b',sections:[
+    {label:'NUMÉRAUX 1 À 16',color:'#2563eb',items:['1 : -giik / -xiik → aa-xiik ak = un homme','2 : -ru / -du / -lu → aa-ru ak = deux hommes','3 : -gan / -xan → aa-xan ak = trois hommes','4 : -baak / -vaak → pwa-baak = quatre objets ronds','5 : -nem → pwa-nem = cinq objets ronds','6 : -nem-giik (5+1) | 7 : -nem-du (5+2) | 8 : -nem-gan (5+3) | 9 : -nem-baak (5+4)','10 : tujic | 11 : tujic xa bwaat pwagiik | 16 : pwanemgiik']},
+    {label:'PRINCIPAUX CLASSIFICATEURS',color:'#059669',items:['aa- : êtres vivants (animés) → aa-xiik ak = un homme','wa- : objets longs → wa-gan = trois objets longs','pwa- : objets ronds → pwa-du = deux fruits ronds','au- : fréquence / nombre de fois → au-xan = trois fois','gu- : filoche de poisson | dee- : main de bananes | maa- : lien de paille | wat- : paire (roussettes)']},
+    {label:'À RETENIR',color:'#f59e0b',items:['Les numéraux kanak ne s\'emploient jamais seuls — toujours avec un classificateur','Le choix dépend du point de vue (forme, fonction, nature, usage…)','Système quinaire → décimal → vigésimal']},
+  ]},
+  {titre:'Comptage des Personnes — AA-',icon:'👥',color:'#e11d48',sections:[
+    {label:'PRINCIPE',color:'#2563eb',items:['Le classificateur aa- compte les êtres vivants (humains)','Chaque "homme" (ak) représente un groupe de 20 personnes','Système vigésimal : base 20']},
+    {label:'DE 1 À 5',color:'#059669',items:['aaxiik = 1 homme → 20 personnes','aaru = 2 hommes → 40 personnes','aaxan = 3 hommes → 60 personnes','aavaak = 4 hommes → 80 personnes','aanem = 5 hommes → 100 personnes']},
+    {label:'DE 6 À 10',color:'#ea580c',items:['aanemgiik = 6 hommes → 120 personnes','aanemdu = 7 hommes → 140 personnes','aanemgan = 8 hommes → 160 personnes','aanembaak = 9 hommes → 180 personnes','tuujic = 10 hommes → 200 personnes']},
+    {label:'À RETENIR',color:'#8b5cf6',items:['Chaque unité = 20 personnes','Formule : nombre d\'hommes × 20 = total de personnes','tuujic (10) = 200 personnes au total']},
+  ]},
+  {titre:'9.2.6.3 — Quantification d\'un Argument Nominal',icon:'👥',color:'#e11d48',sections:[
+    {label:'KHOXO / HOGIIK',color:'#059669',items:['khoxo = "il y a beaucoup" / "beaucoup de (choses)"','hogiik = "il y a peu" / "peu de (choses)"','Ce sont des verbes quantificateurs / prédicats d\'existence quantifiée','Ex. 108 : hogiik yada-n = "il a peu de biens"','Ex. 109 : khoxo ââ-m kuvic ? = "as-tu beaucoup de plants d\'igname ?"']},
+    {label:'RESTRICTION GRAMMATICALE',color:'#e11d48',items:['khoxo et hogiik ne peuvent PAS être directement postposés au nom','✗ *na iyulî pwâ-ciic khoxo — ✗ *na iyulî khoxo pwâ-ciic','Ils doivent être prédicats construits comme des déterminations relatives']},
+    {label:'CONSTRUCTION SYNTAXIQUE',color:'#2563eb',items:['Ces prédicats n\'ont pas d\'argument direct','Le terme quantifié est marqué indirectement par le relateur i','Ex. 117 : hogiik agu na le = "il y a peu/moins de gens à cet endroit"']},
+    {label:'DEUX TYPES DE DÉTERMINATION',color:'#8b5cf6',items:['A. Avec xe ou o (virtuel) → le quantificateur est prédicat relatif','Ex. 121 : na iyulî pwâ-ciic xe khoxo = "j\'ai acheté beaucoup de fruits"','B. Avec déterminant déictique/anaphorique (déjà préconstruit)','Ex. 119 : hogiik-(i) agu ma(h)leena = "ils sont peu nombreux ces gens-là"']},
+    {label:'PWÂ — QUANTIFICATEUR RESTRICTIF',color:'#ea580c',items:['pwâ = "peu" → quantificateur restrictif','Limite le nombre d\'éléments considérés','Seuls les noms référant à des humains peuvent avoir une trace anaphorique']},
+  ]},
+  {titre:'Quantification — Vue Générale',icon:'🌐',color:'#0891b2',sections:[
+    {label:'IDÉE GÉNÉRALE',color:'#2563eb',items:['La numération cardinale/ordinale utilise des classificateurs numériques','Servent à : classer les objets, exprimer la quantité, préciser la nature des éléments comptés','Référence au non-singulier (duel/pluriel) → déterminants déictiques']},
+    {label:'ORIGINE DES CLASSIFICATEURS',color:'#059669',items:['*pua-qi → classificateur sphérique (proto-océanien)','*po-gi → classificateur sphérique','*mata-qi → unité individuelle ou série']},
+    {label:'LANGUES DE L\'EXTRÊME-NORD',color:'#ea580c',items:['nêlêmwa, nyelâyu : nombreux classificateurs numériques','Peuvent référer à : objets longs, plantes, nombre de fois, échanges coutumiers','Ex. : un tas de trois ignames | un paquet de cinq poissons']},
+    {label:'STRUCTURE & ALLOMORPHES',color:'#8b5cf6',items:['Structure : [ classificateur + numéral + nom ]','1 : -(g)iik, -(x)iik | 2 : -ru, -lu, -du | 3 : -gan, -xan | 4 : -baak, -vaak','aa-xiik ak = un homme | aa-ru ak = deux hommes | aa-xan ak = trois hommes']},
+    {label:'CLASSIFICATEURS DES PLANTES',color:'#059669',items:['pum-giik, pum-xiik, pumwaagiik = une pousse (arbre/plante)','Origine : *puxet = "pied"']},
+    {label:'POINT IMPORTANT',color:'#f59e0b',items:['Les classificateurs numériques : servent à compter ET donnent des infos qualitatives','La langue associe donc : quantité + catégorisation + qualification']},
+  ]},
+];
+
+function renderMindmaps(){
+  const el=document.getElementById('mindmapsContent');
+  if(!el||el.innerHTML!=='') return;
+  el.innerHTML=mindmapsData.map((mm,mi)=>`
+    <div style="background:#1a1830;border:2px solid #2d2b4e;border-radius:22px;padding:20px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;cursor:pointer" onclick="toggleMindmap(${mi})">
+        <div style="font-size:1.8rem">${mm.icon}</div>
+        <div style="flex:1">
+          <div style="font-family:'Fredoka One',cursive;font-size:1rem;color:#e2e8f0;line-height:1.3">${mm.titre}</div>
+        </div>
+        <div id="mmarrow${mi}" style="font-size:1rem;color:#8b5cf6;transition:transform 0.3s">▼</div>
+      </div>
+      <div id="mmbody${mi}">
+        ${mm.sections.map(s=>`
+          <div style="margin-bottom:12px">
+            <div style="font-size:0.72rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${s.color};margin-bottom:6px">${s.label}</div>
+            ${s.items.map(it=>`<div style="background:#221f3a;border-left:3px solid ${s.color};border-radius:0 8px 8px 0;padding:8px 10px;margin-bottom:4px;font-size:0.82rem;color:#94a3b8;line-height:1.5">${it}</div>`).join('')}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleMindmap(i){
+  const body=document.getElementById('mmbody'+i);
+  const arrow=document.getElementById('mmarrow'+i);
+  if(!body) return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  arrow.style.transform=open?'rotate(-90deg)':'rotate(0deg)';
+}
+
+// ===== CASSE-TÊTE =====
+const anagramData = [
+  {word:'wa-giik',shuffled:'kig-iaw',hint:'Classificateur — objet long (un)',meaning:'Un objet long',emoji:'🪵'},
+  {word:'pwa-giik',shuffled:'ikg-awpa',hint:'Classificateur — objet rond (un)',meaning:'Un objet rond',emoji:'🍎'},
+  {word:'au-xan',shuffled:'axnu-a',hint:'Fréquence — trois fois',meaning:'Trois fois',emoji:'3️⃣'},
+  {word:'tujic',shuffled:'cutij',hint:'Numéral — dix',meaning:'Dix',emoji:'🔟'},
+  {word:'khoxo',shuffled:'oxhok',hint:'Quantificateur — beaucoup',meaning:'Beaucoup / il y a beaucoup',emoji:'🔥'},
+  {word:'hogiik',shuffled:'ikhgoo',hint:'Quantificateur — peu',meaning:'Peu / il y a peu',emoji:'💧'},
+  {word:'aa-xiik',shuffled:'xkaaii-',hint:'Classificateur animé — un être vivant',meaning:'Un être vivant (un)',emoji:'🧑'},
+  {word:'neya-du',shuffled:'yuneda-',hint:'Classificateur — deux morceaux',meaning:'Deux morceaux allongés',emoji:'🎋'},
+  {word:'hiva-giik',shuffled:'giikvha-i',hint:'Classificateur — un tas',meaning:'Un tas',emoji:'🪨'},
+  {word:'pwaneda',shuffled:'adwapen',hint:'Interrogatif neutre — combien ?',meaning:'Combien ? (neutre)',emoji:'❓'},
+  {word:'aaxiik',shuffled:'iixaak',hint:'Comptage — 1 homme = 20 personnes',meaning:'1 homme (20 personnes)',emoji:'🧑'},
+  {word:'aaru',shuffled:'uraa',hint:'Comptage — 2 hommes = 40 personnes',meaning:'2 hommes (40 personnes)',emoji:'👥'},
+  {word:'aanem',shuffled:'manea',hint:'Comptage — 5 hommes = 100 personnes',meaning:'5 hommes (100 personnes)',emoji:'🖐️'},
+  {word:'tuujic',shuffled:'ucijtu',hint:'Comptage — 10 hommes = 200 personnes',meaning:'10 hommes (200 personnes)',emoji:'🔟'},
+];
+
+const devinetteData = [
+  {word:'khooba-t',blanks:7,emoji:'🔢',indices:[
+    {icon:'💡',text:'Je suis un nom dépendant qui quantifie les choses discrètes.',cost:'gratuit'},
+    {icon:'🔤',text:'Je commence par "khoo"...',cost:'-5 pts'},
+    {icon:'📖',text:'Je signifie "nombre, chiffre".',cost:'-10 pts'},
+  ]},
+  {word:'bwaya-t',blanks:6,emoji:'⚖️',indices:[
+    {icon:'💡',text:'Je quantifie sans discrétiser — une quantité globale.',cost:'gratuit'},
+    {icon:'🔤',text:'Je commence par "bwa"...',cost:'-5 pts'},
+    {icon:'📖',text:'Je signifie "poids, importance, nombre global".',cost:'-10 pts'},
+  ]},
+  {word:'pwa-nem',blanks:6,emoji:'🍎',indices:[
+    {icon:'💡',text:'Je suis un classificateur + numéral pour objets ronds.',cost:'gratuit'},
+    {icon:'🔤',text:'pwa- = rond, et le numéral vient du proto-océanien *lima.',cost:'-5 pts'},
+    {icon:'📖',text:'Je désigne cinq objets ronds.',cost:'-10 pts'},
+  ]},
+  {word:'aa-ru',blanks:4,emoji:'👥',indices:[
+    {icon:'💡',text:'Je sers à compter les êtres vivants.',cost:'gratuit'},
+    {icon:'🔤',text:'aa- = animés, et -ru = deux.',cost:'-5 pts'},
+    {icon:'📖',text:'Je signifie "deux êtres vivants".',cost:'-10 pts'},
+  ]},
+  {word:'au-neda',blanks:6,emoji:'❓',indices:[
+    {icon:'💡',text:'Je suis une question sur la fréquence.',cost:'gratuit'},
+    {icon:'🔤',text:'au- = fois, neda = combien.',cost:'-5 pts'},
+    {icon:'📖',text:'Je demande "combien de fois ?".',cost:'-10 pts'},
+  ]},
+  {word:'fhâa-xiik',blanks:8,emoji:'🪵',indices:[
+    {icon:'💡',text:'Je sers à compter les charges et fagots de bois.',cost:'gratuit'},
+    {icon:'🔤',text:'fhâ-t = "charge", -xiik = un.',cost:'-5 pts'},
+    {icon:'📖',text:'Je désigne un fagot de bois.',cost:'-10 pts'},
+  ]},
+  {word:'pwanemgiik',blanks:9,emoji:'1️⃣6️⃣',indices:[
+    {icon:'💡',text:'Je suis un numéral composé par addition.',cost:'gratuit'},
+    {icon:'🔤',text:'10 + 6 = ?',cost:'-5 pts'},
+    {icon:'📖',text:'Je signifie seize (10 + 6).',cost:'-10 pts'},
+  ]},
+  {word:'dee-xiik',blanks:7,emoji:'🍌',indices:[
+    {icon:'💡',text:'Je suis un classificateur spécifique à une catégorie unique.',cost:'gratuit'},
+    {icon:'🔤',text:'dee-t = "main de banane".',cost:'-5 pts'},
+    {icon:'📖',text:'Je désigne une main de bananes.',cost:'-10 pts'},
+  ]},
+];
+
+const pairesData = [
+  {kanak:'wa-giik',fr:'un objet long'},
+  {kanak:'pwa-giik',fr:'un objet rond'},
+  {kanak:'aa-xiik',fr:'un être vivant'},
+  {kanak:'au-xan',fr:'trois fois'},
+  {kanak:'tujic',fr:'dix'},
+  {kanak:'khoxo',fr:'beaucoup'},
+  {kanak:'hogiik',fr:'peu'},
+  {kanak:'dee-xiik',fr:'une main de bananes'},
+  {kanak:'pwa-nem',fr:'cinq objets ronds'},
+  {kanak:'aa-ru',fr:'deux êtres vivants'},
+  {kanak:'hiva-giik',fr:'un tas'},
+  {kanak:'pwaneda ?',fr:'combien ?'},
+  {kanak:'aaxiik',fr:'1 homme = 20 pers.'},
+  {kanak:'aaru',fr:'2 hommes = 40 pers.'},
+  {kanak:'aanem',fr:'5 hommes = 100 pers.'},
+  {kanak:'tuujic',fr:'10 hommes = 200 pers.'},
+  {kanak:'aaxan',fr:'3 hommes = 60 pers.'},
+  {kanak:'aanemgan',fr:'8 hommes = 160 pers.'},
+];
+
+let casseType='', casseIndex=0, casseScore=0, casseTotal=0;
+let anagramBuilt='', anagramUsed=[];
+let devIndicesShown=0, devPoints=20;
+let pairsFlipped=[], pairsMatched=[], pairsLock=false, pairsCards=[], pairsMoves=0;
+let pairsTimer=0, pairsTimerInterval=null;
+
+function startCasse(type){
+  casseType=type; casseIndex=0; casseScore=0;
+  document.getElementById('casseMenu').style.display='none';
+  document.getElementById('casseGame').style.display='block';
+  if(type==='anagram') renderAnagram();
+  else if(type==='devinette') renderDevinette();
+  else if(type==='paires') renderPaires();
+}
+
+function backToMenu(){
+  casseType='';
+  document.getElementById('casseMenu').style.display='grid';
+  document.getElementById('casseGame').style.display='none';
+  if(pairsTimerInterval){ clearInterval(pairsTimerInterval); pairsTimerInterval=null; }
+}
+
+// ---- ANAGRAMME ----
+function renderAnagram(){
+  casseTotal=anagramData.length;
+  const d=anagramData[casseIndex];
+  const letters=[...d.word.replace(/-/g,'')];
+  anagramBuilt=''; anagramUsed=new Array(letters.length).fill(false);
+  const dots=anagramData.map((_,i)=>`<div class="cp-dot ${i<casseIndex?'cp-done':i===casseIndex?'cp-cur':''}"></div>`).join('');
+  const tiles=letters.map((l,i)=>`<div class="al-tile" id="atile${i}" onclick="useLetter(${i},'${l}')">${l}</div>`).join('');
+  document.getElementById('casseGame').innerHTML=`
+    <div class="casse-header">
+      <button class="back-btn" onclick="backToMenu()">← Menu</button>
+      <div class="casse-title">🔀 Anagrammes</div>
+      <div class="casse-score-pill">⭐ ${casseScore}</div>
+    </div>
+    <div class="casse-progress">${dots}</div>
+    <div class="game-card">
+      <div style="text-align:center;margin-bottom:4px;font-size:0.75rem;color:#64748b;font-weight:800;letter-spacing:2px;text-transform:uppercase;">Défi ${casseIndex+1} / ${casseTotal}</div>
+      <div style="text-align:center;font-size:2rem;margin:8px 0">${d.emoji}</div>
+      <div style="text-align:center;color:#94a3b8;font-size:0.85rem;font-style:italic;margin-bottom:16px">${d.hint}</div>
+      <div style="text-align:center;color:#64748b;font-size:0.78rem;margin-bottom:8px">Lettres disponibles :</div>
+      <div class="anagram-letters">${tiles}</div>
+      <div style="text-align:center;color:#64748b;font-size:0.78rem;margin-bottom:6px">Ta réponse :</div>
+      <div class="anagram-word" id="anagramBuilt">_ _ _</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="clearAnagram()" style="flex:1;background:#221f3a;border:2px solid #2d2b4e;color:#94a3b8;border-radius:12px;padding:10px;font-family:Nunito,sans-serif;font-weight:800;cursor:pointer;">🗑️ Effacer</button>
+        <button class="anagram-validate" style="flex:2" onclick="checkAnagram()">✅ Valider</button>
+      </div>
+      <div class="game-feedback" id="anagramFb"></div>
+    </div>
+    <button class="game-next" id="anagramNext" onclick="nextCasse()">Suivant →</button>`;
+}
+
+function useLetter(i,l){
+  if(anagramUsed[i]) return;
+  anagramUsed[i]=true;
+  anagramBuilt+=l;
+  document.getElementById('atile'+i).classList.add('used');
+  const display=anagramBuilt.length?anagramBuilt:'_ _ _';
+  document.getElementById('anagramBuilt').textContent=display;
+}
+
+function clearAnagram(){
+  anagramBuilt='';
+  anagramUsed.fill(false);
+  document.querySelectorAll('.al-tile').forEach(t=>t.classList.remove('used'));
+  document.getElementById('anagramBuilt').textContent='_ _ _';
+}
+
+function checkAnagram(){
+  const d=anagramData[casseIndex];
+  const correct=anagramBuilt===d.word.replace(/-/g,'');
+  const fb=document.getElementById('anagramFb');
+  if(correct){
+    casseScore+=20; addScore(20);
+    fb.innerHTML=`✅ Bravo ! <strong style="color:#a7f3d0">${d.word}</strong> = ${d.meaning} ${d.emoji}`;
+    fb.className='game-feedback show good';
+    spawnConfetti();
+  } else {
+    fb.innerHTML=`❌ La bonne réponse était <strong style="color:#fca5a5">${d.word}</strong> = ${d.meaning}`;
+    fb.className='game-feedback show bad';
+  }
+  document.getElementById('anagramNext').classList.add('show');
+}
+
+// ---- DEVINETTE ----
+function renderDevinette(){
+  casseTotal=devinetteData.length;
+  const d=devinetteData[casseIndex];
+  devIndicesShown=0; devPoints=20;
+  const dots=devinetteData.map((_,i)=>`<div class="cp-dot ${i<casseIndex?'cp-done':i===casseIndex?'cp-cur':''}"></div>`).join('');
+  const blanks=d.word.split('').map(c=>c==='-'?`<div class="blank-space"></div>`:`<div class="blank-box" id="bk${Math.random().toString(36).slice(2)}"> </div>`).join('');
+  const indices=d.indices.map((ind,i)=>`
+    <div class="indice-row ${i>0?'locked':''}" id="indice${i}" onclick="showIndice(${i})">
+      <div class="indice-icon">${ind.icon}</div>
+      <div class="indice-text" id="indiceText${i}">${i===0?ind.text:'🔒 Cliquer pour révéler...'}</div>
+      <div class="indice-cost">${ind.cost}</div>
+    </div>`).join('');
+  document.getElementById('casseGame').innerHTML=`
+    <div class="casse-header">
+      <button class="back-btn" onclick="backToMenu()">← Menu</button>
+      <div class="casse-title">🔍 Devinettes</div>
+      <div class="casse-score-pill">⭐ ${casseScore}</div>
+    </div>
+    <div class="casse-progress">${dots}</div>
+    <div class="game-card">
+      <div style="text-align:center;font-size:2rem;margin-bottom:8px">${d.emoji}</div>
+      <div style="text-align:center;color:#94a3b8;font-size:0.82rem;margin-bottom:16px">Énigme ${casseIndex+1} / ${casseTotal} — Max <strong style="color:#f59e0b">${devPoints} pts</strong></div>
+      <div class="devinette-indices">${indices}</div>
+      <div style="text-align:center;color:#64748b;font-size:0.78rem;margin-bottom:8px">Le mot (${d.word.length} caractères) :</div>
+      <div class="devinette-blanks" id="devBlanks">${blanks}</div>
+      <input id="devInput" class="anagram-input" placeholder="Tape ta réponse..." style="margin-top:12px">
+      <button class="anagram-validate" onclick="checkDevinette()" style="margin-top:10px">✅ Valider</button>
+      <div class="game-feedback" id="devFb"></div>
+    </div>
+    <button class="game-next" id="devNext" onclick="nextCasse()">Suivant →</button>`;
+}
+
+function showIndice(i){
+  if(i===0) return;
+  const d=devinetteData[casseIndex];
+  const row=document.getElementById('indice'+i);
+  if(row.classList.contains('locked')){
+    row.classList.remove('locked');
+    document.getElementById('indiceText'+i).textContent=d.indices[i].text;
+    devPoints=Math.max(0,devPoints+(i===1?-5:-10));
+    document.querySelector('.casse-score-pill').textContent='⭐ '+casseScore;
+  }
+}
+
+function checkDevinette(){
+  const d=devinetteData[casseIndex];
+  const val=document.getElementById('devInput').value.trim().toLowerCase();
+  const correct=val===d.word.toLowerCase();
+  const fb=document.getElementById('devFb');
+  if(correct){
+    casseScore+=devPoints; addScore(devPoints);
+    fb.innerHTML=`✅ Excellent ! <strong style="color:#a7f3d0">${d.word}</strong> ${d.emoji} — +${devPoints} pts !`;
+    fb.className='game-feedback show good';
+    document.getElementById('devInput').className='anagram-input correct-input';
+    spawnConfetti();
+  } else {
+    fb.innerHTML=`❌ La réponse était <strong style="color:#fca5a5">${d.word}</strong>`;
+    fb.className='game-feedback show bad';
+    document.getElementById('devInput').className='anagram-input wrong-input';
+    setTimeout(()=>document.getElementById('devInput').className='anagram-input',600);
+  }
+  document.getElementById('devNext').classList.add('show');
+  document.getElementById('devInput').disabled=true;
+}
+
+// ---- PAIRES ----
+function renderPaires(){
+  pairsFlipped=[]; pairsMatched=[]; pairsLock=false; pairsMoves=0; pairsTimer=0;
+  if(pairsTimerInterval) clearInterval(pairsTimerInterval);
+  const subset=pairesData.sort(()=>Math.random()-0.5).slice(0,6);
+  const cards=[
+    ...subset.map((d,i)=>({id:i,type:'kanak',text:d.kanak,pair:i})),
+    ...subset.map((d,i)=>({id:i+6,type:'fr',text:d.fr,pair:i}))
+  ].sort(()=>Math.random()-0.5);
+  pairsCards=cards;
+  pairsTimerInterval=setInterval(()=>{
+    pairsTimer++;
+    const el=document.getElementById('pairsTimer');
+    if(el) el.textContent='⏱️ '+pairsTimer+'s';
+  },1000);
+  const grid=cards.map((c,i)=>`
+    <div class="pair-card" id="pc${i}" onclick="flipPair(${i})" data-pair="${c.pair}" data-type="${c.type}">
+      ${c.text}
+    </div>`).join('');
+  document.getElementById('casseGame').innerHTML=`
+    <div class="casse-header">
+      <button class="back-btn" onclick="backToMenu()">← Menu</button>
+      <div class="casse-title">🃏 Paires</div>
+      <div class="casse-score-pill">⭐ ${casseScore}</div>
+    </div>
+    <div class="pairs-info">Associe chaque mot kanak 🌴 à sa traduction française 🇫🇷</div>
+    <div class="pairs-timer" id="pairsTimer">⏱️ 0s</div>
+    <div class="pairs-grid">${grid}</div>
+    <div class="game-feedback" id="pairsFb"></div>`;
+}
+
+function flipPair(i){
+  if(pairsLock) return;
+  if(pairsMatched.includes(i)) return;
+  if(pairsFlipped.includes(i)) return;
+  document.getElementById('pc'+i).classList.add('flipped');
+  pairsFlipped.push(i);
+  if(pairsFlipped.length===2){
+    pairsLock=true; pairsMoves++;
+    const [a,b]=pairsFlipped;
+    const ca=pairsCards[a], cb=pairsCards[b];
+    if(ca.pair===cb.pair && ca.type!==cb.type){
+      // match
+      setTimeout(()=>{
+        [a,b].forEach(x=>{ document.getElementById('pc'+x).classList.remove('flipped'); document.getElementById('pc'+x).classList.add('matched'); });
+        pairsMatched.push(a,b);
+        pairsFlipped=[]; pairsLock=false;
+        casseScore+=15; addScore(15);
+        if(pairsMatched.length===pairsCards.length) pairsWin();
+      },400);
+    } else {
+      setTimeout(()=>{
+        [a,b].forEach(x=>{ const el=document.getElementById('pc'+x); el.classList.add('wrong-pair'); setTimeout(()=>{el.classList.remove('flipped','wrong-pair');},400); });
+        pairsFlipped=[]; pairsLock=false;
+      },700);
+    }
+  }
+}
+
+function pairsWin(){
+  clearInterval(pairsTimerInterval); pairsTimerInterval=null;
+  const bonus=Math.max(0,120-pairsTimer);
+  casseScore+=bonus; addScore(bonus);
+  spawnConfetti();
+  const fb=document.getElementById('pairsFb');
+  fb.innerHTML=`🏆 Toutes les paires trouvées en <strong style="color:#f59e0b">${pairsMoves} coups</strong> et <strong style="color:#f59e0b">${pairsTimer}s</strong> ! Bonus : +${bonus} pts !`;
+  fb.className='game-feedback show good';
+  setTimeout(()=>backToMenu(),3500);
+}
+
+function nextCasse(){
+  casseIndex++;
+  const dataLen= casseType==='anagram'?anagramData.length:devinetteData.length;
+  if(casseIndex>=dataLen){
+    renderCasseEnd();
+  } else {
+    if(casseType==='anagram') renderAnagram();
+    else renderDevinette();
+  }
+}
+
+function renderCasseEnd(){
+  const emoji=casseScore>=(casseTotal*15)?'🏆':casseScore>=(casseTotal*8)?'⭐':'💪';
+  document.getElementById('casseGame').innerHTML=`
+    <div class="gameover">
+      <span class="big-emoji">${emoji}</span>
+      <h2>Défi terminé !</h2>
+      <div class="score-reveal">${casseScore} pts</div>
+      <p>Tu as complété tous les défis !<br>Ton score a été ajouté au total.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+        <button class="restart-btn" onclick="startCasse('${casseType}')">🔄 Recommencer</button>
+        <button class="restart-btn" style="background:linear-gradient(135deg,#059669,#0891b2)" onclick="backToMenu()">🏠 Menu</button>
+      </div>
+    </div>`;
+  spawnConfetti();
+}
+
+</script>
+</body>
+</html>
